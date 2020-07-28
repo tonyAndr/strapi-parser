@@ -1,0 +1,16 @@
+{
+  "collectionName": "components_seo_seo_fields",
+  "info": {
+    "name": "seo_fields",
+    "icon": "atlas"
+  },
+  "options": {},
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    }
+  }
+}

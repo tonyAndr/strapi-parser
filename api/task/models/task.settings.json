@@ -1,0 +1,24 @@
+{
+  "kind": "collectionType",
+  "collectionName": "tasks",
+  "info": {
+    "name": "task"
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true
+  },
+  "attributes": {
+    "keywords": {
+      "type": "string"
+    },
+    "is_finished": {
+      "type": "boolean",
+      "default": false
+    },
+    "articles": {
+      "via": "task",
+      "collection": "article"
+    }
+  }
+}

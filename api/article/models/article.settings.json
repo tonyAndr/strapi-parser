@@ -1,0 +1,34 @@
+{
+  "kind": "collectionType",
+  "collectionName": "articles",
+  "info": {
+    "name": "article"
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true
+  },
+  "attributes": {
+    "keyword": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "content": {
+      "type": "richtext"
+    },
+    "symbols": {
+      "type": "integer"
+    },
+    "seo_meta": {
+      "type": "component",
+      "repeatable": true,
+      "component": "seo.seo-fields"
+    },
+    "task": {
+      "model": "task",
+      "via": "articles"
+    }
+  }
+}
