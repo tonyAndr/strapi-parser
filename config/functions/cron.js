@@ -12,6 +12,7 @@
 const { sanitizeEntity } = require('strapi-utils');
 const { searchYA } = require('../../parsers/search/yandex');
 const { getHtml } = require('../../parsers/get_html/get');
+const { processBlocks } = require('../../parsers/process_blocks');
 
 
 module.exports = {
@@ -22,7 +23,8 @@ module.exports = {
       let entities = await strapi.services.task.find();
       let urls = await searchYA(entities[0].articles[0].keyword);
       let parsedContent = await getHtml(urls);
-      console.log(parsedContent);
+      processBlocks(parsedContent)
+      //console.log(parsedContent);
     } catch (err) {
       console.log(err)
     }
