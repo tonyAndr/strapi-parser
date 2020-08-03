@@ -112,3 +112,10 @@ license.txt
 exports
 .cache
 build
+
+
+############################
+# Parser
+############################
+
+tmp_images

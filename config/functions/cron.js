@@ -9,30 +9,14 @@
  *
  * See more details here: https://strapi.io/documentation/v3.x/concepts/configurations.html#cron-tasks
  */
-const { sanitizeEntity } = require('strapi-utils');
-const { searchYA } = require('../../parsers/search/yandex');
-const { getHtml } = require('../../parsers/get_html/get');
-const { processBlocks } = require('../../parsers/process_blocks');
+
 
 
 module.exports = {
 
-  '35 * * * * *': async () => {
-    try {
-      console.log("test")
-      let entities = await strapi.services.task.find();
-      let urls = await searchYA(entities[0].articles[0].keyword);
-      let parsedContent = await getHtml(urls);
-      processBlocks(parsedContent)
-      //console.log(parsedContent);
-    } catch (err) {
-      console.log(err)
+    '*/30 * * * * *': async () => {
+        await strapi.services.task.startParsing();
     }
 
-    // .then(entities => {
-      
-    //   // 
-    // }).catch(err => );
-  }
 };
 

@@ -17,8 +17,39 @@
       "default": false
     },
     "articles": {
-      "via": "task",
-      "collection": "article"
+      "collection": "article",
+      "via": "task"
+    },
+    "domain": {
+      "type": "string"
+    },
+    "is_processing": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_started": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_enabled": {
+      "type": "boolean",
+      "default": false
+    },
+    "parser_type": {
+      "type": "enumeration",
+      "enum": [
+        "standard",
+        "download"
+      ]
+    },
+    "lang": {
+      "type": "enumeration",
+      "enum": [
+        "ru",
+        "en",
+        "es"
+      ],
+      "default": "ru"
     }
   }
 }

@@ -12,13 +12,10 @@
     "keyword": {
       "type": "string"
     },
-    "title": {
+    "title_h1": {
       "type": "string"
     },
-    "content": {
-      "type": "richtext"
-    },
-    "symbols": {
+    "text_length": {
       "type": "integer"
     },
     "seo_meta": {
@@ -27,8 +24,19 @@
       "component": "seo.seo-fields"
     },
     "task": {
-      "model": "task",
-      "via": "articles"
+      "via": "articles",
+      "model": "task"
+    },
+    "is_done": {
+      "type": "boolean",
+      "default": false
+    },
+    "is_uploaded": {
+      "type": "boolean",
+      "default": false
+    },
+    "content_body": {
+      "type": "text"
     }
   }
 }
