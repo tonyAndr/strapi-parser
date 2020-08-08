@@ -24,8 +24,8 @@
       "component": "seo.seo-fields"
     },
     "task": {
-      "via": "articles",
-      "model": "task"
+      "model": "task",
+      "via": "articles"
     },
     "is_done": {
       "type": "boolean",
@@ -36,6 +36,12 @@
       "default": false
     },
     "content_body": {
+      "type": "text"
+    },
+    "slug": {
+      "type": "string"
+    },
+    "text_body": {
       "type": "text"
     }
   }

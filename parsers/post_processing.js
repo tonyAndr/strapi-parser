@@ -3,17 +3,12 @@
 const sharp = require('sharp');
 const axios = require('axios')
 const JSDOM = require('jsdom').JSDOM;
-const cyrillicToTranslit = require('cyrillic-to-translit-js');
-const natural = require('natural');
 const fs = require('fs');
 
 module.exports = {
-    imgProcessing: async (domain, keyword, content) => {
+    imgProcessing: async (domain, keyword, slug, content) => {
         let dom = new JSDOM(content);
         let document = dom.window.document;
-
-        const tokenizer = new natural.WordTokenizer();
-        const img_name = tokenizer.tokenize(cyrillicToTranslit().transform(keyword)).join('-').toLowerCase();
 
         let images = [...document.querySelectorAll('img')];
         for (let i = 0; i < images.length; i++) {
@@ -26,10 +21,10 @@ module.exports = {
             try {
                 let src = img.getAttribute('src');
 
-                const fileName = img_name + '_' + i + '.jpg';
+                const fileName = slug + '_' + i + '.jpg';
 
 
-                const dir = './tmp_images/' + domain + '/' + img_name;
+                const dir = './tmp_images/' + domain + '/' + slug;
 
                 if (!fs.existsSync(dir)) {
                     fs.mkdirSync(dir, { recursive: true });
@@ -43,7 +38,7 @@ module.exports = {
                 }).toFile(dir + '/' + fileName);
 
                 if (file) {
-                    img.setAttribute('src', '../uploads/post_id/' + fileName);
+                    img.setAttribute('src', '/wp-content/uploads/' + slug + '/' + fileName);
                     img.removeAttribute('data-src');
                     img.removeAttribute('data-lazy-src');
                     img.removeAttribute('data-lazy-srcset');

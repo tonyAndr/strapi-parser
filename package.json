@@ -19,6 +19,7 @@
     "languagedetect": "^2.0.0",
     "natural": "^2.1.5",
     "node-fetch": "^2.6.0",
+    "node-ssh": "^11.0.0",
     "sharp": "^0.25.4",
     "sqlite3": "latest",
     "strapi": "3.1.1",
@@ -31,6 +32,7 @@
     "strapi-plugin-users-permissions": "3.1.1",
     "strapi-utils": "3.1.1",
     "string-similarity-algorithm": "^1.1.0",
+    "wpapi": "^1.2.1",
     "wuzzy": "^0.1.5",
     "xml2js": "^0.4.23",
     "yandex-xml": "^1.0.2"

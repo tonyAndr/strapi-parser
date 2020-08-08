@@ -8,10 +8,9 @@
 module.exports = {
     lifecycles: {
         async afterCreate(data) {
-            console.log(data)
+            console.log(data);
             
             let parentId = data.id;
-            // console.log(parentId);
             let kws = data.keywords.split(", ");
 
             for (let i = 0; i < kws.length; i++) {

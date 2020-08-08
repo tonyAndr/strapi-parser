@@ -17,8 +17,8 @@
       "default": false
     },
     "articles": {
-      "collection": "article",
-      "via": "task"
+      "via": "task",
+      "collection": "article"
     },
     "domain": {
       "type": "string"
@@ -50,6 +50,21 @@
         "es"
       ],
       "default": "ru"
+    },
+    "wp_user": {
+      "type": "string"
+    },
+    "wp_password": {
+      "type": "string"
+    },
+    "server_domain": {
+      "type": "string"
+    },
+    "ssh_user": {
+      "type": "string"
+    },
+    "ssh_password": {
+      "type": "string"
     }
   }
 }

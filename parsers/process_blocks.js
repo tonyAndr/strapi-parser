@@ -300,6 +300,13 @@ const buildContentBody = (parsedContent, headersArray, optimizedIndices) => {
     return sortedBlocks;
 }
 
+const removeHtmlTags = (html) => {
+    let dom = new JSDOM(html);
+    let document = dom.window.document;
+
+    return document.documentElement.textContent;
+} 
+
 module.exports = {
     processBlocks: (parsedContent) => {
         let headersArray = extractHeaders(parsedContent);
@@ -311,13 +318,14 @@ module.exports = {
         let optimizedIndices = optimizeGroups(parsedContent, headersArray, groupedIndices);
         let sortedContentBlocks = buildContentBody(parsedContent, headersArray, optimizedIndices);
         sortedContentBlocks = removeGarbageDOM(sortedContentBlocks);
-        let finalText = sortedContentBlocks.join(' ');
+        let finalHtml = sortedContentBlocks.join(' ');
+        let finalText = removeHtmlTags(finalHtml);
         // finalText = removeGarbageDOM(finalText);
         // console.log(finalText);
-        console.log("Text length: " + finalText.length);
+        console.log("Text length: " + finalHtml.length);
         console.log("Initial blocks count: " + headersArray.length);
         console.log("Final blocks count: " + sortedContentBlocks.length);
-        return finalText;
+        return [finalText, finalText];
     },
 
 }
