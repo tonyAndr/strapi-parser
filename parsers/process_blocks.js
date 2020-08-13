@@ -48,7 +48,7 @@ const extractHeaders = (parsedContent) => {
         }
     }
     // console.log("chosen key: " + introIndexKey)
-    introText = parsedContent[introIndexKey].contentBlocks.intro;
+    introText = parsedContent[introIndexKey].contentBlocks.intro + "<!--more-->";
 
     return headersArray;
 }
@@ -325,7 +325,7 @@ module.exports = {
         console.log("Text length: " + finalHtml.length);
         console.log("Initial blocks count: " + headersArray.length);
         console.log("Final blocks count: " + sortedContentBlocks.length);
-        return [finalText, finalText];
+        return [finalHtml, finalText];
     },
 
 }

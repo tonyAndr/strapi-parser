@@ -9,14 +9,18 @@ const { searchYA } = require('../../../parsers/search/yandex');
 const { getHtml } = require('../../../parsers/get_html/get');
 const { processBlocks } = require('../../../parsers/process_blocks');
 const { imgProcessing } = require('../../../parsers/post_processing');
+const { getMeta } = require('../../../parsers/meta');
 const cyrillicToTranslit = require('cyrillic-to-translit-js');
 const natural = require('natural');
+const { uploadArticle } = require('../../../parsers/wp_upload');
 
 const parser = async (task) => {
     try {
         for (let i = 0; i < task.articles.length; i++) {
 
             const article = task.articles[i];
+
+
             if (!article.is_done) {
                 let keyword = article.keyword;
                 let domain = task.domain;
@@ -26,20 +30,32 @@ const parser = async (task) => {
                 const slug = tokenizer.tokenize(cyrillicToTranslit().transform(keyword)).join('-').toLowerCase();
                 await strapi.services.article.update({ id: article.id }, { slug });
 
-                console.log("[" + new Date.toISOString() + "] PARSING STARTED, KW: [" + keyword + "] ...")
+                console.log("[" + new Date().toISOString() + "] PARSING STARTED, KW: [" + keyword + "] ...")
                 let urls = await searchYA(keyword);
                 console.log(urls)
 
-                console.log("[" + new Date.toISOString() + "] GETTING HTML ...")
+                console.log("[" + new Date().toISOString() + "] GETTING HTML ...")
                 let parsedContent = await getHtml(urls);
-                console.log("[" + new Date.toISOString() + "] PROCESSING TEXTS ...")
+                console.log("[" + new Date().toISOString() + "] PROCESSING TEXTS ...")
                 let [finalContent, finalText] = processBlocks(parsedContent);
-                // console.log("[" + new Date.toISOString() + "] PROCESSING IMGS ...")
-                //finalContent = await imgProcessing(domain, keyword, slug, finalContent);
-                console.log("[" + new Date.toISOString() + "] FINISHED ...")
-                //console.log(finalContent);
 
-                await strapi.services.article.update({ id: article.id }, { is_done: true, content_body: finalContent, text_body: finalText, text_length: finalContent.length });
+                let meta = getMeta(keyword, parsedContent, finalText);
+                console.log("[" + new Date().toISOString() + "] PROCESSING IMGS ...")
+                finalContent = await imgProcessing(domain, keyword, slug, finalContent);
+                console.log("[" + new Date().toISOString() + "] FINISHED ...")
+
+                //console.log(finalContent);
+                await strapi.services.article.update({ id: article.id }, { is_done: true, title_h1: meta.h1, title_seo: meta.title, description_seo: meta.description, content_body: finalContent, text_body: finalText, text_length: finalContent.length });
+                let uploaded = await uploadArticle(task, article);
+
+                if (!uploaded)
+                    throw new Error('Upload error')
+            }
+
+            if (article.is_done && !article.is_uploaded) {
+                let uploaded = await uploadArticle(task, article);
+                if (!uploaded)
+                    throw new Error('Upload error')
             }
         }
         return true;
@@ -74,10 +90,10 @@ module.exports = {
             } else {
                 await strapi.services.task.update({ id: task.id }, { is_processing: false, is_finished: false });
             }
-        } catch ( err)  {
+        } catch (err) {
             console.log(err);
             await strapi.services.task.update({ id: task.id }, { is_processing: false });
         }
-        
+
     }
 };

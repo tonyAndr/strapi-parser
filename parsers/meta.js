@@ -6,7 +6,7 @@ const prepareTitle = (text) => {
 
     // replace long — to short one
     // change : to - and vice versa
-    text = text.replace("—", "-").replace(" - ", "~ ").replace(": ", " — ").replace("~ ",": ");
+    text = text.replace("—", "-").replace(" - ", "~ ").replace(": ", " — ").replace("~ ", ": ");
 
     // Keep Last ? or !
     let mark = "";
@@ -67,10 +67,10 @@ const selectTitle = (keyword, parsedContent) => {
             if (/\.com|\.ru|\.net|\.info|\.club|\.ру|\.org|\.pw|\.su|\.es|\.ua|\.рф/i.test(curr)) {
                 continue;
             }
-            if (/купить|куплю|продать|продажа|магазин|оптом|wiki|покупка|сайт|\|москв|санкт/i.test(curr)) {
+            if (/купить|куплю|продать|продажа|магазин|оптом|wiki|покупка|сайт|\||москв|санкт/i.test(curr)) {
                 continue;
             }
-            if (curr.match(/[А-Я]/g).length !== 1) {
+            if (curr.match(/[А-Я]/g) === null || curr.match(/[А-Я]/g).length !== 1) {
                 continue;
             }
             if (curr.length > 150) {
@@ -84,7 +84,7 @@ const selectTitle = (keyword, parsedContent) => {
     }
 
     // select randomly
-    selected = parsedContent[keys[Math.floor(Math.random() * keys.length)]].title;
+    selected = parsedContent[keys.getRandomElement()].title;
     return prepareTitle(selected);
 }
 const selectDescr = (parsedContent, finalText) => {
@@ -112,7 +112,7 @@ const selectDescr = (parsedContent, finalText) => {
         selected = finalText.match(/(.+?\.)/g)[0];
     } else {
         // select randomly
-        selected = parsedContent[keys[Math.floor(Math.random() * keys.length)]].title;
+        selected = parsedContent[keys[Math.floor(Math.random() * keys.length)]].description;
     }
 
     return prepareDesrc(selected);

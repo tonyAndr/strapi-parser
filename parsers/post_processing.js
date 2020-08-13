@@ -38,7 +38,7 @@ module.exports = {
                 }).toFile(dir + '/' + fileName);
 
                 if (file) {
-                    img.setAttribute('src', '/wp-content/uploads/' + slug + '/' + fileName);
+                    img.setAttribute('src', '/wp-content/uploads/posts/' + slug + '/' + fileName);
                     img.removeAttribute('data-src');
                     img.removeAttribute('data-lazy-src');
                     img.removeAttribute('data-lazy-srcset');
