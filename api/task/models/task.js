@@ -5,21 +5,36 @@
  * to customize this model
  */
 
-module.exports = {
-    lifecycles: {
-        async afterCreate(data) {
-            console.log(data);
-            
-            let parentId = data.id;
-            let kws = data.keywords.split(", ");
+const createArticleLogic = async (data) => {
+    console.log(data);
 
-            for (let i = 0; i < kws.length; i++) {
+    let parentId = data.id;
+    if (data.keywords) {
+        let kws = data.keywords.trim().split('\n');
+    
+        for (let i = 0; i < kws.length; i++) {
+            let kwPair = kws[i].split('\t');
+    
+            let exists = await strapi.services.article.findOne({ task: parentId, keyword: kwPair[0].trim() });
+            if (!exists) {
                 let article = {
-                    keyword: kws[i],
-                    task: parentId
+                    keyword: kwPair[0].trim(),
+                    task: parentId,
+                    category: kwPair[1].trim()
                 }
                 await strapi.services.article.create(article);
             }
+        }
+    }
+}
+
+module.exports = {
+    lifecycles: {
+        async afterCreate(data) {
+            await createArticleLogic(data);       
         },
+        async afterUpdate(result, params, data) {
+            await createArticleLogic(data);
+        }
     },
 };

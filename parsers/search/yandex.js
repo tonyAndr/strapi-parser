@@ -6,6 +6,9 @@ module.exports = {
     searchYA: async (keyword) => {
         let query = new URL(API_URI + "&query=" + keyword);
 
+        // temp blacklist
+        let blacklist = ['youtu', 'wiki', 'yandex'];
+
         try {
             let request = await fetch(query);
             request = await request.text();
@@ -17,9 +20,12 @@ module.exports = {
                 throw new Error("Urls not found")
             }
 
+            urls = removeBlackListed(urls, blacklist);
+
             return urls;
         } catch (err) {
             console.log(err)
+            return false;
         }
     }
 }
@@ -35,6 +41,14 @@ const iterate = (obj, urls) => {
         if (typeof obj[key] === 'object') {
             iterate(obj[key], urls);
         }
+    })
+    return urls;
+}
+
+const removeBlackListed = (urls, blacklist) => {
+    let regex = new RegExp(blacklist.join('|'), 'gi');
+    urls = urls.filter((url, i) => {
+      return url.match(regex) === null;  
     })
     return urls;
 }

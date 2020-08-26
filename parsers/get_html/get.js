@@ -3,20 +3,29 @@ const JSDOM = require('jsdom').JSDOM;
 const createDOMPurify = require('dompurify');
 const Readability = require('./Readability');
 const lngDetector = new (require('languagedetect'));
+const Entities = require('html-entities').AllHtmlEntities;
 
 module.exports = {
     getHtml: async (urls) => {
         let parsedContent = {};
         try {
             for (let i = 0; i < urls.length; i++) {
-                let html = await fetch(new URL(urls[i]));
-                
-                html = await html.textConverted();
-
+                let pageSrc = '';
+                try {
+                    let html = await fetch(new URL(urls[i]));
+                    if (!html.status || html.status !== 200) {
+                        throw new Error('Bad status');
+                    }
+                    pageSrc = await html.textConverted();
+                } catch(fetchError) {
+                    console.log("Fetch error, skip url: "+urls[i]);
+                    continue;
+                }
+            
                 const window = new JSDOM('').window;
                 const DOMPurify = createDOMPurify(window);
 
-                const clean = DOMPurify.sanitize(html, {
+                const clean = DOMPurify.sanitize(pageSrc, {
                     WHOLE_DOCUMENT: true,
                     FORBID_TAGS: ['style', 'svg', 'a'],
                     FORBID_ATTR: ['style', 'id', 'srcset', 'sizes', 'data-flat-attr'],
@@ -57,10 +66,19 @@ module.exports = {
 
                 // remove iframes w/o youtube
                 let iframes = document.querySelectorAll("iframe");
-                iframes.forEach(iframe => {
-                    if (!iframe.hasAttribute('src') || !iframe.getAttribute('src').includes('youtube')) {
-                        iframe.remove();
+                iframes.forEach((iframe, i) => {
+                    if (!iframe.hasAttribute('src') || !iframe.getAttribute('src').includes('youtu')) {
+                        iframes[i].remove();
+                    } else {
+                        iframes[i].setAttribute('width', '644');
+                        iframes[i].setAttribute('height', '362');
                     }
+                })
+
+                // replace ol with ul
+                let ols = document.querySelectorAll("ol");
+                ols.forEach((ol, i) => {
+                    ols[i].outerHTML = "<ul>" + ol.innerHTML + "</ul>";
                 })
 
                 let h1 = document.getElementsByTagName("h1")[0];
@@ -73,21 +91,38 @@ module.exports = {
                 let reader = new Readability(document);
                 let article = reader.parse();
 
-                if (article.length < 3000 || article.length > 35000) {
+                if (article.content.length < 3000 || article.content.length > 35000) {
+                    continue;
+                }
+
+                // skip copypast (Источник*)
+                let copypast = article.content.match(/источник/ig);
+                if (copypast && copypast.length > 2) {
                     continue;
                 }
 
                 // remove spec symbols
                 let cleanedBody = article.content.replace(/[\r\n\t]/g, '');
+
                 cleanedBody = DOMPurify.sanitize(cleanedBody, {
                     ADD_TAGS: ['iframe'],
+                    ADD_ATTR: ['width', 'height'],
                     FORBID_TAGS: ['div', 'article', 'section', 'header', 'figcaption', 'figure', 'span'],
-                    FORBID_ATTR: ['data-src', 'data-lazy-src', 'loading', 'data-lazy-srcset', 'aria-describedby', 'width', 'height']
+                    FORBID_ATTR: ['data-src', 'data-lazy-src', 'loading', 'data-lazy-srcset', 'aria-describedby']
+                });
+
+                // Remove empty nodes
+                DOMPurify.addHook('afterSanitizeElements', function (node) {
+                    // Set text node content to uppercase
+                    if ((node.tagName === "H2" || node.tagName === "P") && node.innerHTML.trim().length === 0) {
+                        node.remove();
+                    }
                 });
 
                 // remove noscript tags with content (usually contain repeating imgs)
                 cleanedBody = DOMPurify.sanitize(cleanedBody, {
                     ADD_TAGS: ['iframe'],
+                    ADD_ATTR: ['width', 'height'],
                     FORBID_TAGS: ['noscript'],
                     KEEP_CONTENT: false
                 });
@@ -102,6 +137,10 @@ module.exports = {
                 let hasH2 = cleanedBody.indexOf("<h2") > -1;
                 let hasIntro = cleanedBody.indexOf("<h2") > 0;
 
+                // decode html entities
+                const entities = new Entities();
+                cleanedBody = entities.decode(cleanedBody);
+
                 // split into blocks
                 cleanedBody = cleanedBody.replace(/<h2/g, '[BLOCK_BRAKER]<h2').split("[BLOCK_BRAKER]");
 
@@ -111,13 +150,15 @@ module.exports = {
                     hasH2
                 }
 
-                parsedContent[urls[i]] = {
-                    title: article.title,
-                    description,
-                    h1,
-                    contentBlocks,
-                    textLength: article.length
-                };
+                if (contentBlocks !== undefined) {
+                    parsedContent[urls[i]] = {
+                        title: article.title,
+                        description,
+                        h1,
+                        contentBlocks,
+                        textLength: article.content.length
+                    };
+                } 
             }
             return parsedContent;
         } catch (err) {

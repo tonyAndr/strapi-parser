@@ -6,10 +6,10 @@ const JSDOM = require('jsdom').JSDOM;
 let commonlyUsedTokens = {};
 let groupsCount = 0;
 let introText = '';
+let introIndexKey;
 
 const extractHeaders = (parsedContent) => {
     let headersArray = [];
-    let introIndexKey;
     let introScore = -10;
 
     for (let key in parsedContent) {
@@ -48,7 +48,7 @@ const extractHeaders = (parsedContent) => {
         }
     }
     // console.log("chosen key: " + introIndexKey)
-    introText = parsedContent[introIndexKey].contentBlocks.intro + "<!--more-->";
+    introText = parsedContent[introIndexKey].contentBlocks.intro;
 
     return headersArray;
 }
@@ -79,20 +79,20 @@ const createGroupsComplicated = (headersArray) => {
 
     let pairedIndices = [];
     headersArray.forEach((hx, ix) => {
-        let similarIndex = false;
-        let maxScore = 0;
+        let similarIndex = [];
+        // let maxScore = 0;
         headersArray.forEach((hy, iy) => {
-            if (hx.h2 !== hy.h2 && hx.url !== hy.url) {
+            if (hx.url !== hy.url) {
                 let score = getSimilarityScore(hx.tokens, hy.tokens);
-                if (score > 0.50 && score > maxScore) {
-                    maxScore = score;
-                    similarIndex = iy;
+                if (score > 0.55 || hx.h2.toLowerCase().trim() === hy.h2.toLowerCase().trim()) {
+                    // maxScore = score;
+                    similarIndex.push(iy);
                 }
             }
         })
 
-        if (similarIndex !== false) {
-            pairedIndices.push([ix, similarIndex]);
+        if (similarIndex.length > 0) {
+            pairedIndices.push([ix, ...similarIndex]);
         } else {
             pairedIndices.push([ix])
         }
@@ -165,7 +165,7 @@ const DEVshowGroupedHeaders = (headersArray, groupedIndices) => {
 const optimizeGroups = (parsedContent, headersArray, groupedIndices) => {
 
     groupedIndices.forEach((group, gr_ind) => {
-        if (group.length > 1) {
+        if (group.length >= 1) {
             let goodHeaderIndex; // which we choose from the group
             let maxCoefficient = 0;
             group.forEach(index => {
@@ -203,6 +203,7 @@ const htmlComplexityScore = (block, isIntro = false) => {
     const LENGTH_MAX = isIntro ? 1200 : 5000;
     const COEF_LENGTH_MAX = isIntro ? 5 : 1;
     const COEF_CONCLUSION = isIntro ? 99 : 5;
+    const COEF_TOC = isIntro ? 99 : 5;
 
     let coef = 0;
 
@@ -211,9 +212,9 @@ const htmlComplexityScore = (block, isIntro = false) => {
     }
 
     // has source links
-    if (block.match(/\.(ru|com|net|рф|club|io|info|org)/giu)) {
-        coef = coef - COEF_HAS_LINKS;
-    }
+    // if (block.match(/\.(ru|com|net|рф|club|io|info|org)/giu)) {
+    //     coef = coef - COEF_HAS_LINKS;
+    // }
 
     // has images
     if (block.match(/<img/giu)) {
@@ -234,6 +235,11 @@ const htmlComplexityScore = (block, isIntro = false) => {
     // header starts with digit
     if (block.match(/<h2[^>]*>\s*(\d|<).+?<\/h2>/gui)) {
         coef = coef - COEF_H2_DIGIT;
+
+    }
+    // block is "readmore" links or similar
+    if (block.match(/<h2[^>]*>\s*(Комментарии|Коментарии|Комментирова|Отзыв|Обсужден|Похожие темы|Читать|Будет интересно|Будет полезно|Читайте|Содержание|Оглавлен|Узнайте|Рекомендуем|Еще по теме|Смотрите так|Похожие материалы|Что еще почитать).+?<\/h2>/gui)) {
+        return -100;
     }
 
     // text length small
@@ -251,61 +257,92 @@ const htmlComplexityScore = (block, isIntro = false) => {
         coef = coef - COEF_CONCLUSION;
     }
 
+    // has TOC 
+    if (block.match(/Содержание|Оглавление/gu)) {
+        coef = coef - COEF_TOC;
+    }
+
     return coef;
 }
 
-const removeGarbageDOM = (blocks) => {
-    blocks = blocks.map(block => {
-        let dom = new JSDOM(block);
-        let document = dom.window.document;
+const removeGarbageDOM = (htmlContent) => {
+    let dom = new JSDOM(htmlContent);
+    let document = dom.window.document;
 
-        // remove bad imgs
-        document.querySelectorAll('img[src*=".gif"]').forEach(node => { node.remove() })
-        document.querySelectorAll('img[src*="admitad"]').forEach(node => { node.remove() })
-        document.querySelectorAll('img[src*="tizer"]').forEach(node => { node.remove() })
-        document.querySelectorAll('img[src*="placeholder"]').forEach(node => { node.remove() })
+    // remove bad imgs
+    document.querySelectorAll('img[src*=".gif"]').forEach(node => { node.remove() })
+    document.querySelectorAll('img[src*="admitad"]').forEach(node => { node.remove() })
+    document.querySelectorAll('img[src*="tizer"]').forEach(node => { node.remove() })
+    document.querySelectorAll('img[src*="placeholder"]').forEach(node => { node.remove() })
 
-        // bad <p>
-        let conditions = new RegExp(/\.com|\.ru|\.net|\.рф|\.club|\.info|\.org|Тизерная сеть|подписывайтесь|поделиться|подробнее в этой статье|Кстати, на нашем сайте|http|Рекомендуемые статьи|Статьи по теме|Автор публикации|Авторы|Понравилась статья|Также рекомендуем просмотреть|Похожие темы|Предыдущая запись|Следующая запись|Поделитесь страницей|Поделитесь статьей|Рекомендуем|Похожие материалы|Еще статьи|Заметили опечатку на сайте|комментировать|Написать комментарий|Главная страница|Поделитесь|Поделись|Если вы нашли ошибку, пожалуйста, выделите фрагмент текста|Enter|Смотрите ещё:|Смотрите также:|Также смотрите|Узнайте также:|Читайте также:|смотреть также|Подписаться|Редактировать статью|Поделись с друзьями|Что еще почитать|Добавить комментарий|Сохраните статью себе на страницу:|Присоединяйтесь к обсуждению:|Читайте нас|Поделились|вернуться к содержанию|Что еще почитать|Присоединяйтесь к обсуждению|Оцените:|Оценить:|Не забудьте поделиться с друзьями|комментариев|Рубрика:|Рубрики:|Категории:|Категория:|Автор статьи|Авторы|обработку персональных данных|Рейтинг статьи|рейтинг:|Читайте так же:|Еще статьи|По теме|содержание статьи|содержание записи|Рекомендуем почитать|Оцените статью|оглавление:|похожие статьи|Рекомендуем вам еще:|Рекомендуем вам:|Рекомендуем еще:|Рекомендуем еще записи по теме:|к содержанию|Читать статью полностью|Читать полностью|Наверх|рекламная сеть|содержание:|оглавление:|VKontakte|теги:|метки:|вконтакте|Твитнуть|Facebook|Twitter|Фейсбук|Мой мир|Telegram|Pinterest|whatsapp|загрузка|Загрузка|Нет комментариев|Добавить отзыв|Оставить комментарий|Одноклассники|rating|оценок, среднее|loading/, 'i');
-        //
-        document.querySelectorAll('p').forEach(p => {
-            if (p.textContent && p.textContent.match(conditions))
-                p.remove(p)
-        });
-        return document.querySelector('body').innerHTML;
+    // bad <p>
+    let conditions = new RegExp(/\.com|\.ru|\.net|\.рф|\.club|\.info|\.org|Подробнее читайте|Читайте здесь|Больше информации здесь|Узнайте здесь|Редакция рекомендует|Похожие рецепты:|Подборки рецептов:|Сохраните себе|Источник:|Источники:|Список источников:|Полезные ссылки|Задать вопрос|Автор:|Авторы:|вернуться на главную|content|toc|В тренде|Полезно знать|подборка статей|на сайте|читать также|почитать в статье|прочитать в статье|Тизерная сеть|Будет интересно:|Будет полезно:|подписывайтесь|поделиться|подробнее в этой статье|Кстати, на нашем сайте|http|Рекомендуемые статьи|Статьи по теме|Автор публикации|Авторы|Понравилась статья|Также рекомендуем просмотреть|Похожие темы|Предыдущая запись|Следующая запись|Поделитесь страницей|Поделитесь статьей|Рекомендуем|Похожие материалы|Еще статьи|Заметили опечатку на сайте|комментировать|Написать комментарий|Главная страница|Поделитесь|Поделись|Если вы нашли ошибку, пожалуйста, выделите фрагмент текста|Enter|Смотрите ещё:|Смотрите также:|Также смотрите|Узнайте также:|Читайте также:|смотреть также|Подписаться|Редактировать статью|Поделись с друзьями|Что еще почитать|Добавить комментарий|Сохраните статью себе на страницу:|Присоединяйтесь к обсуждению:|Читайте нас|Поделились|вернуться к содержанию|Что еще почитать|Присоединяйтесь к обсуждению|Оцените:|Оценить:|Не забудьте поделиться с друзьями|комментари|Рубрика:|Рубрики:|Категории:|Категория:|Автор статьи|Авторы|обработку персональных данных|Рейтинг статьи|рейтинг:|Читайте так же:|Еще статьи|По теме|содержание статьи|содержание записи|Рекомендуем почитать|Оцените статью|оглавлени|похожие статьи|Рекомендуем вам еще:|Рекомендуем вам:|Рекомендуем еще:|Рекомендуем еще записи по теме:|к содержанию|Читать статью полностью|Читать полностью|Наверх|рекламная сеть|^содержание:|^Содержание|Оглавление|оглавление:|VKontakte|теги:|метки:|вконтакте|Твитнуть|Facebook|Twitter|Фейсбук|Мой мир|Telegram|Pinterest|whatsapp|загрузка|Загрузка|Нет комментариев|Добавить отзыв|Оставить комментарий|Одноклассники|rating|оценок, среднее|loading|это интересно/, 'i');
+    document.querySelectorAll('p').forEach(p => {
+        if (p.textContent && p.textContent.match(conditions))
+            p.remove(p)
+    });
+    // bad textnodes
+    document.querySelectorAll('*').forEach(node => {
+        if (node.nodeName && node.nodeName === "#text") {
+            if (node.nodeValue && node.nodeValue.match(conditions))
+                node.remove(node);
+        }
     })
-    return blocks;
+
+    // Remove list numbers from h2
+    document.querySelectorAll('h2').forEach(h2 => {
+        h2.outerHTML = h2.outerHTML.replace(/\d+[.)]?\s/, '');
+    });
+
+    // remove empty blockquotes
+    document.querySelectorAll('blockquote').forEach(bq => {
+        if (bq.textContent.trim().length === 0) {
+            bq.remove(bq);
+        }
+    });
+
+    return document.querySelector('body').innerHTML;
 }
 
 const buildContentBody = (parsedContent, headersArray, optimizedIndices) => {
     let sortedBlocks = [];
-
+    let usedDonors = [];
     // adding blocks using priority to position correctly
     optimizedIndices.forEach((h_index, i) => {
         let url = headersArray[h_index].url;
         let blockIndex = headersArray[h_index].priority;
         let blockContent = parsedContent[url].contentBlocks.blocks[blockIndex];
+        let addToArticle = false;
 
-        // dont show conclusion at all
-        if (!blockContent.match(/Заключение|В качестве заключения|Заключении|Вывод|Итог|Подведем итог/gu)) {
-            // blockIndex = 99;
-
-            sortedBlocks.splice(blockIndex, 0, blockContent);
+        if (blockContent.match(/Список источников/gu)) {
+            // src list to the end
+            blockIndex = 99;
+            addToArticle = true;
+        } else if (!blockContent.match(/Заключение|В качестве заключения|Заключении|Вывод|Итог|Подведем итог/gu)) {
+            // add block to its pos, and dont show conclusion at all
+            addToArticle = true;
+        }
+        if (addToArticle) {
+            usedDonors.push(url);
+            sortedBlocks.splice(blockIndex, 0, "<div class='content-block-start'><!-- START BLOCK, SRC: [" + url + "] --></div>" + blockContent + "<div class='content-block-end'><!-- END BLOCK, SRC: [" + url + "] --></div>");
         }
     });
 
-    // adding excerpt
-    sortedBlocks.splice(0, 0, introText);
+    usedDonors = [...new Set(usedDonors)];
 
-    return sortedBlocks;
+    // adding excerpt
+    sortedBlocks.splice(0, 0, "<div class='content-block-start'><!-- START INTRO, SRC: [" + introIndexKey + "] --></div>" + introText + "<div class='content-block-end'><!-- END INTRO, SRC: [" + introIndexKey + "] --></div>");
+
+    return [sortedBlocks, usedDonors];
 }
 
+// Simply return textContent
 const removeHtmlTags = (html) => {
     let dom = new JSDOM(html);
     let document = dom.window.document;
 
     return document.documentElement.textContent;
-} 
+}
 
 module.exports = {
     processBlocks: (parsedContent) => {
@@ -316,16 +353,20 @@ module.exports = {
         let groupedIndices = createGroupsComplicated(headersArray);
         // DEVshowGroupedHeaders(headersArray, groupedIndices);
         let optimizedIndices = optimizeGroups(parsedContent, headersArray, groupedIndices);
-        let sortedContentBlocks = buildContentBody(parsedContent, headersArray, optimizedIndices);
-        sortedContentBlocks = removeGarbageDOM(sortedContentBlocks);
-        let finalHtml = sortedContentBlocks.join(' ');
+        let [sortedContentBlocks, usedDonors] = buildContentBody(parsedContent, headersArray, optimizedIndices);
+
+        let finalHtml = removeGarbageDOM(sortedContentBlocks.join(' '));
         let finalText = removeHtmlTags(finalHtml);
+
+        // add more tag
+        finalHtml = finalHtml.replace(/<\/p>/i, '</p><!--more-->');
+
         // finalText = removeGarbageDOM(finalText);
         // console.log(finalText);
         console.log("Text length: " + finalHtml.length);
         console.log("Initial blocks count: " + headersArray.length);
         console.log("Final blocks count: " + sortedContentBlocks.length);
-        return [finalHtml, finalText];
+        return [finalHtml, finalText, usedDonors];
     },
 
 }

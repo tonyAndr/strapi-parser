@@ -70,9 +70,9 @@ const selectTitle = (keyword, parsedContent) => {
             if (/купить|куплю|продать|продажа|магазин|оптом|wiki|покупка|сайт|\||москв|санкт/i.test(curr)) {
                 continue;
             }
-            if (curr.match(/[А-Я]/g) === null || curr.match(/[А-Я]/g).length !== 1) {
-                continue;
-            }
+            // if (curr.match(/[А-Я]/g) === null || curr.match(/[А-Я]/g).length !== 1) {
+            //     continue;
+            // }
             if (curr.length > 150) {
                 continue;
             }
@@ -124,7 +124,7 @@ const prepareH1 = (keyword) => {
 
 
 const capitalize = (s) => {
-    return s && s[0].toUpperCase() + s.slice(1).toLowerCase();
+    return s && s[0].toUpperCase() + s.slice(1);
 }
 
 Array.prototype.getRandomElement = function () {

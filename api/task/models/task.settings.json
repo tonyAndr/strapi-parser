@@ -10,7 +10,7 @@
   },
   "attributes": {
     "keywords": {
-      "type": "string"
+      "type": "text"
     },
     "is_finished": {
       "type": "boolean",

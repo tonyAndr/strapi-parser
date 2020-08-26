@@ -20,6 +20,9 @@ const parser = async (task) => {
 
             const article = task.articles[i];
 
+            if (article.is_skipped) {
+                continue;
+            }
 
             if (!article.is_done) {
                 let keyword = article.keyword;
@@ -34,29 +37,50 @@ const parser = async (task) => {
                 let urls = await searchYA(keyword);
                 console.log(urls)
 
+                if (!urls) {
+                    throw new Error('Yandex XML returned error');
+                }
+
                 console.log("[" + new Date().toISOString() + "] GETTING HTML ...")
                 let parsedContent = await getHtml(urls);
+                if (parsedContent == undefined) {
+                    throw new Error('Couldn\'t get HTML, no donors to work with');
+                }
+
                 console.log("[" + new Date().toISOString() + "] PROCESSING TEXTS ...")
-                let [finalContent, finalText] = processBlocks(parsedContent);
+                let [finalContent, finalText, usedDonors] = processBlocks(parsedContent);
+                if (usedDonors.length < 3) {
+                    await strapi.services.article.update({ id: article.id }, { is_skipped: true, content_body: finalContent, text_body: finalText, text_length: finalContent.length });
+                    throw new Error('Not enough donors were used, skipped');
+                }
+
+                if (finalText.length < 3000) {
+                    await strapi.services.article.update({ id: article.id }, { is_skipped: true, content_body: finalContent, text_body: finalText, text_length: finalContent.length });
+                    throw new Error('Not enough text length, skipped');
+                }
 
                 let meta = getMeta(keyword, parsedContent, finalText);
                 console.log("[" + new Date().toISOString() + "] PROCESSING IMGS ...")
                 finalContent = await imgProcessing(domain, keyword, slug, finalContent);
-                console.log("[" + new Date().toISOString() + "] FINISHED ...")
-
+                console.log("[" + new Date().toISOString() + "] PARSING DONE ...")
+                
+                let updatedArt = await strapi.services.article.update({ id: article.id }, { is_done: true, title_h1: meta.h1, title_seo: meta.title, description_seo: meta.description, content_body: finalContent, text_body: finalText, text_length: finalContent.length });
+                console.log("[" + new Date().toISOString() + "] TRYING TO UPLOAD ...");
+                
                 //console.log(finalContent);
-                await strapi.services.article.update({ id: article.id }, { is_done: true, title_h1: meta.h1, title_seo: meta.title, description_seo: meta.description, content_body: finalContent, text_body: finalText, text_length: finalContent.length });
-                let uploaded = await uploadArticle(task, article);
-
+                let uploaded = await uploadArticle(task, updatedArt);
+                
                 if (!uploaded)
-                    throw new Error('Upload error')
+                throw new Error('Upload error')
             }
-
+            
             if (article.is_done && !article.is_uploaded) {
                 let uploaded = await uploadArticle(task, article);
                 if (!uploaded)
-                    throw new Error('Upload error')
+                throw new Error('Upload error')
             }
+            
+            console.log("[" + new Date().toISOString() + "] ARTICLE UPLOADED ...");
         }
         return true;
     } catch (err) {

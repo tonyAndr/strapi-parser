@@ -32,8 +32,8 @@ module.exports = {
 
                 let buffer = await axios({ url: src, responseType: "arraybuffer" });
                 buffer = Buffer.from(buffer.data, 'binary');
-                const file = await sharp(buffer).resize(700).jpeg({
-                    quality: 70,
+                const file = await sharp(buffer).resize(644).jpeg({
+                    quality: 60,
                     chromaSubsampling: '4:4:4'
                 }).toFile(dir + '/' + fileName);
 
@@ -44,13 +44,18 @@ module.exports = {
                     img.removeAttribute('data-lazy-srcset');
                     img.removeAttribute('sizes');
                     img.removeAttribute('srcset');
+                    img.removeAttribute('width');
+                    img.removeAttribute('height');
 
                     if (!img.getAttribute('alt')) {
                         img.setAttribute('alt', keyword);
                     }
 
+                    // set lazy loading
+                    img.setAttribute('loading', 'lazy');
+
                     console.log(fileName);
-                    console.log(file);
+                    // console.log(file);
                 } else {
                     throw new Error ("Can't download/resize image, no info received from sharp")
                 }

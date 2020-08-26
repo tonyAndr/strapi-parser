@@ -7,14 +7,26 @@ const NodeSSH = require('node-ssh').NodeSSH
 const ssh = new NodeSSH()
 const rimraf = require("rimraf");
 
-const createPost = async (task, article) => {
+const createCat = async (wp, name) => {
     try {
-        var wp = new WPAPI({
-            endpoint: 'https://' + task.domain + '/wp-json',
-            // This assumes you are using basic auth, as described further below
-            username: task.wp_user,
-            password: task.wp_password
-        });
+        const response = await wp.categories().create({
+            name: name
+        })
+        return response.id;
+    } catch (err) {
+        if (err.data) {
+            return err.data.term_id;
+        } else {
+            console.log(err);
+            throw new Error('Category cannot be created');
+        }
+    }
+}
+
+const createPost = async (task, article, wp) => {
+    try {
+        
+        let categoryId = await createCat(wp, article.category);
 
         let response = await wp.posts().create({
             // "title" and "content" are the only required properties
@@ -23,12 +35,13 @@ const createPost = async (task, article) => {
             // Post will be created as a draft by default if a specific "status"
             // is not specified
             status: 'publish',
+            categories: categoryId,
             meta: {
                 '_aioseop_title': article.title_seo,
                 '_aioseop_description': article.description_seo
             }
         });
-        console.log(response);
+        // console.log(response);
         return response;
     } catch (err) {
         console.log(err);
@@ -37,7 +50,7 @@ const createPost = async (task, article) => {
 
 }
 
-const uploadMedia = async (task, article) => {
+const uploadMedia = async (task, article, wp, wp_id) => {
     try {
         let connection = await ssh.connect({
             host: task.server_domain,
@@ -70,8 +83,22 @@ const uploadMedia = async (task, article) => {
             throw new Error('files upload fail')
         }
 
+        // upload featured image
+        let media = await wp.media().file('./tmp_images/' + task.domain + '/' + article.slug + '/' + article.slug + '_0.jpg').create({
+            title: article.keyword,
+            post_id: wp_id
+        }) 
+        // console.log('media: ' + media)
+
+        if (media.id) {
+            let updatedPost = await wp.posts().id(wp_id).update({
+                featured_media: media.id
+            })
+        } else {
+            throw new Error('Can\'t create featured image');
+        }
+
         // let files = await ssh.putFiles([{ local: './tmp_images/'+task.domain + '/' +article.slug, remote:  }]);
-        rimraf.sync('./tmp_images/' + task.domain + '/' + article.slug);
         return true;
     } catch (err) {
         console.log(err);
@@ -87,18 +114,28 @@ const uploadMedia = async (task, article) => {
 
 module.exports = {
     uploadArticle: async (task, article) => {
-        try {
-            let post = await createPost(task, article);
-            let mediaUploaded = await uploadMedia(task, article);
+        var wp = new WPAPI({
+            endpoint: 'https://' + task.domain + '/wp-json',
+            // This assumes you are using basic auth, as described further below
+            username: task.wp_user,
+            password: task.wp_password
+        });
 
+        try {
+
+            let post = await createPost(task, article, wp);
+            
             if (post.id) {
                 await strapi.services.article.update({ id: article.id }, { wp_id: post.id });
             } else {
                 throw new Error("Rest API returned error")
             }
 
+            let mediaUploaded = await uploadMedia(task, article, wp, post.id);
+
             if (mediaUploaded) {
                 await strapi.services.article.update({ id: article.id }, { is_uploaded: true });
+                rimraf.sync('./tmp_images/' + task.domain + '/' + article.slug);
             }
             return true;
         } catch (err) {

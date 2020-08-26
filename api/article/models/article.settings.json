@@ -47,6 +47,13 @@
     },
     "wp_id": {
       "type": "integer"
+    },
+    "category": {
+      "type": "string"
+    },
+    "is_skipped": {
+      "type": "boolean",
+      "default": false
     }
   }
 }
