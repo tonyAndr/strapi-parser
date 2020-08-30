@@ -41,8 +41,8 @@ module.exports = {
                 let document = dom.window.document;
 
                 // check lang
-                let docLang = lngDetector.detect(document.querySelector('body').textContent)[0][0];
-                if ( docLang !== 'russian' && docLang !== 'bulgarian' ) {
+                let docLang = lngDetector.detect(document.querySelector('body').textContent);
+                if (docLang.length === 0 || (docLang[0][0] !== 'russian' && docLang[0][0] !== 'bulgarian' )) {
                     continue;
                 }
 

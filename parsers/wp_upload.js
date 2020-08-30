@@ -6,6 +6,8 @@ const fs = require('fs')
 const NodeSSH = require('node-ssh').NodeSSH
 const ssh = new NodeSSH()
 const rimraf = require("rimraf");
+const axios = require('axios');
+const qs = require('qs');
 
 const createCat = async (wp, name) => {
     try {
@@ -28,7 +30,7 @@ const createPost = async (task, article, wp) => {
         
         let categoryId = await createCat(wp, article.category);
 
-        let response = await wp.posts().create({
+        let postObject = {
             // "title" and "content" are the only required properties
             title: article.title_h1,
             content: article.content_body,
@@ -40,7 +42,24 @@ const createPost = async (task, article, wp) => {
                 '_aioseop_title': article.title_seo,
                 '_aioseop_description': article.description_seo
             }
-        });
+        };
+
+        let testData = {
+            title: 'Test',
+            content: 'Content'
+        }
+
+        // let response = await axios({
+        //     method: 'post', //you can set what request you want to be
+        //     url: 'https://'+task.domain+'/wp-json/wp/v2/posts',
+        //     data: qs.stringify(postObject),
+        //     auth: {
+        //         username: task.wp_user,
+        //         password: task.wp_password
+        //     }
+        // })
+
+        let response = await wp.posts().create(postObject);
         // console.log(response);
         return response;
     } catch (err) {
@@ -94,6 +113,10 @@ const uploadMedia = async (task, article, wp, wp_id) => {
             let updatedPost = await wp.posts().id(wp_id).update({
                 featured_media: media.id
             })
+
+            if (!updatedPost.id) {
+                throw new Error('Can\'t update featured image in post');
+            }
         } else {
             throw new Error('Can\'t create featured image');
         }
@@ -126,8 +149,9 @@ module.exports = {
             let post = await createPost(task, article, wp);
             
             if (post.id) {
-                await strapi.services.article.update({ id: article.id }, { wp_id: post.id });
+                let artUpdated = await strapi.services.article.update({ id: article.id }, { wp_id: post.id });
             } else {
+                // console.log(post);
                 throw new Error("Rest API returned error")
             }
 
