@@ -32,22 +32,37 @@ const extractHeaders = (parsedContent) => {
             if (article.contentBlocks.hasH2) {
                 article.contentBlocks.blocks.forEach((block, index) => {
 
-                    let h2Text = block.match(/<h2[^>]*>(.+?)<\/h2>/iu)[1].trim();
-                    headersArray.push({
-                        url: key,
-                        h2: h2Text,
-                        tokens: h2Text.tokenizeAndStem(),
-                        priority: index
-                    })
-
-                    if (index + 1 > groupsCount) {
-                        groupsCount = index + 1;
+                    let match = block.match(/<h2[^>]*>(.+?)<\/h2>/iu);
+                    // block is "readmore" links or similar
+                    
+                    if (match !== null) {                        
+                        let h2Text = match[1].trim();
+                        let musor = h2Text.match(/Комментарии|Коментарии|Комментирова|Отзыв|Обсужден|Похожие темы|^Читать|Будет интересно|^Будет полезно|Читайте|^Содержание|Оглавлен|Узнайте|Рекомендуем|Еще по теме|Смотрите так|Похожие материалы|Что еще почитать|Остались вопросы/gi); 
+                        if (musor === null) {
+                            headersArray.push({
+                                url: key,
+                                h2: h2Text,
+                                tokens: h2Text.tokenizeAndStem(),
+                                priority: index
+                            })
+        
+                            if (index + 1 > groupsCount) {
+                                groupsCount = index + 1;
+                            }
+                        }
                     }
                 })
             }
         }
     }
     // console.log("chosen key: " + introIndexKey)
+    if (!introIndexKey || parsedContent[introIndexKey] === undefined || headersArray.length === 0) {
+        return false;
+    }
+    // console.log('== debug ==')
+    // console.log(introIndexKey)
+    // console.log(parsedContent[introIndexKey])
+    // console.log('== debug ==')
     introText = parsedContent[introIndexKey].contentBlocks.intro;
 
     return headersArray;
@@ -84,7 +99,7 @@ const createGroupsComplicated = (headersArray) => {
         headersArray.forEach((hy, iy) => {
             if (hx.url !== hy.url) {
                 let score = getSimilarityScore(hx.tokens, hy.tokens);
-                if (score > 0.55 || hx.h2.toLowerCase().trim() === hy.h2.toLowerCase().trim()) {
+                if (score > 0.60 || hx.h2.toLowerCase().trim() === hy.h2.toLowerCase().trim()) {
                     // maxScore = score;
                     similarIndex.push(iy);
                 }
@@ -237,10 +252,6 @@ const htmlComplexityScore = (block, isIntro = false) => {
         coef = coef - COEF_H2_DIGIT;
 
     }
-    // block is "readmore" links or similar
-    if (block.match(/<h2[^>]*>\s*(Комментарии|Коментарии|Комментирова|Отзыв|Обсужден|Похожие темы|Читать|Будет интересно|Будет полезно|Читайте|Содержание|Оглавлен|Узнайте|Рекомендуем|Еще по теме|Смотрите так|Похожие материалы|Что еще почитать).+?<\/h2>/gui)) {
-        return -100;
-    }
 
     // text length small
     if (block.length < LENGTH_MIN) {
@@ -347,6 +358,9 @@ const removeHtmlTags = (html) => {
 module.exports = {
     processBlocks: (parsedContent) => {
         let headersArray = extractHeaders(parsedContent);
+        if (headersArray === false) {
+            return false;
+        }
         headersArray = cleanTokens(headersArray);
         sortCommonTokens();
         // createGroups(headersArray);

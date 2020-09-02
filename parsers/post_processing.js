@@ -9,8 +9,26 @@ module.exports = {
     imgProcessing: async (domain, keyword, slug, content) => {
         let dom = new JSDOM(content);
         let document = dom.window.document;
+        let downloadedImagesCount = 0;
+        
+        // remove iframes w/o youtube
+        let iframes = document.querySelectorAll("iframe");
+        iframes.forEach((iframe, i) => {
+            if (!iframe.hasAttribute('src') || !iframe.getAttribute('src').includes('youtu')) {
+                iframes[i].remove();
+            } else {
+                iframes[i].setAttribute('width', '644');
+                iframes[i].setAttribute('height', '362');
+            }
+        })
 
         let images = [...document.querySelectorAll('img')];
+        images.forEach(img => {
+            if (img.hasAttribute('data-src'))
+                img.setAttribute('src', img.getAttribute('data-src'))
+            if (img.hasAttribute('data-lazy-src'))
+                img.setAttribute('src', img.getAttribute('data-lazy-src'))
+        })
         for (let i = 0; i < images.length; i++) {
             const img = images[i];
 
@@ -33,11 +51,12 @@ module.exports = {
                 let buffer = await axios({ url: src, responseType: "arraybuffer" });
                 buffer = Buffer.from(buffer.data, 'binary');
                 const file = await sharp(buffer).resize(644).jpeg({
-                    quality: 60,
+                    quality: 70,
                     chromaSubsampling: '4:4:4'
                 }).toFile(dir + '/' + fileName);
+                // console.log(file);
 
-                if (file) {
+                if (file && file.size > 15000) {
                     img.setAttribute('src', '/wp-content/uploads/posts/' + slug + '/' + fileName);
                     img.removeAttribute('data-src');
                     img.removeAttribute('data-lazy-src');
@@ -55,17 +74,18 @@ module.exports = {
                     img.setAttribute('loading', 'lazy');
 
                     console.log(fileName);
+                    downloadedImagesCount++;
                     // console.log(file);
                 } else {
                     throw new Error ("Can't download/resize image, no info received from sharp")
                 }
             } catch ( err ) {
-                console.log(err)
+                console.log('Can\'t download/resize');
                 img.remove();
             }
 
         }
 
-        return document.querySelector('body').innerHTML;
+        return [document.querySelector('body').innerHTML, downloadedImagesCount];
     }
 }

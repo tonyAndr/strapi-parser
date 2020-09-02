@@ -7,7 +7,7 @@ module.exports = {
         let query = new URL(API_URI + "&query=" + keyword);
 
         // temp blacklist
-        let blacklist = ['youtu', 'wiki', 'yandex'];
+        let blacklist = ['medside','fb\.ru','youtu', 'wiki', 'yandex', '\.pdf', '\.docx', '\.rtf'];
 
         try {
             let request = await fetch(query);

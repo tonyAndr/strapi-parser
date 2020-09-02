@@ -46,33 +46,20 @@ module.exports = {
                     continue;
                 }
 
-                // check length
-
-
                 let description = document.querySelector("meta[name='description']");
                 if (description)
                     description = description.content;
                 else 
                     description = '';
 
-                // img processing 
-                let images = document.querySelectorAll("img");
-                images.forEach(img => {
-                    if (img.hasAttribute('data-src'))
-                        img.setAttribute('src', img.getAttribute('data-src'))
-                    if (img.hasAttribute('data-lazy-src'))
-                        img.setAttribute('src', img.getAttribute('data-lazy-src'))
+                // remove toc
+                let tocs = document.querySelectorAll("*[class*='toc']");
+                tocs.forEach((toc, i) => {
+                    tocs[i].remove();
                 })
-
-                // remove iframes w/o youtube
-                let iframes = document.querySelectorAll("iframe");
-                iframes.forEach((iframe, i) => {
-                    if (!iframe.hasAttribute('src') || !iframe.getAttribute('src').includes('youtu')) {
-                        iframes[i].remove();
-                    } else {
-                        iframes[i].setAttribute('width', '644');
-                        iframes[i].setAttribute('height', '362');
-                    }
+                tocs = document.querySelectorAll("*[id*='toc']");
+                tocs.forEach((toc, i) => {
+                    tocs[i].remove();
                 })
 
                 // replace ol with ul
@@ -91,7 +78,7 @@ module.exports = {
                 let reader = new Readability(document);
                 let article = reader.parse();
 
-                if (article.content.length < 3000 || article.content.length > 35000) {
+                if (article === null || article.content === null || article.content.length < 3000 || article.content.length > 35000) {
                     continue;
                 }
 
@@ -132,6 +119,9 @@ module.exports = {
                 
                 // remove multiple spaces
                 cleanedBody = cleanedBody.replace(/\s+/g, ' ');
+
+                // remove shortcodes
+                cleanedBody = cleanedBody.replace(/\[.+?\]/g, '');
 
                 // check headers
                 let hasH2 = cleanedBody.indexOf("<h2") > -1;

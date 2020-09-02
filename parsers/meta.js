@@ -64,10 +64,14 @@ const selectTitle = (keyword, parsedContent) => {
     for (let key in parsedContent) {
         if (parsedContent.hasOwnProperty(key)) {
             let curr = parsedContent[key].title;
+            let hostname = (new URL(key)).hostname;
             if (/\.com|\.ru|\.net|\.info|\.club|\.ру|\.org|\.pw|\.su|\.es|\.ua|\.рф/i.test(curr)) {
                 continue;
             }
             if (/купить|куплю|продать|продажа|магазин|оптом|wiki|покупка|сайт|\||москв|санкт/i.test(curr)) {
+                continue;
+            }
+            if (curr.toLowerCase().includes(hostname.toLowerCase())) {
                 continue;
             }
             // if (curr.match(/[А-Я]/g) === null || curr.match(/[А-Я]/g).length !== 1) {

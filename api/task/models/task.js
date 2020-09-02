@@ -25,6 +25,7 @@ const createArticleLogic = async (data) => {
                 await strapi.services.article.create(article);
             }
         }
+        await strapi.services.task.update({ id: data.id }, { keywords: '' });
     }
 }
 

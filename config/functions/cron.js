@@ -15,7 +15,7 @@
 module.exports = {
 
     '*/30 * * * * *': async () => {
-        await strapi.services.task.startParsing();
+        strapi.services.task.startParsing2();
     }
 
 };

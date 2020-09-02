@@ -46,8 +46,11 @@ module.exports = ({ env }) => ({
 				username: env('DATABASE_USERNAME', 'cherryvps'),
 				password: env('DATABASE_PASSWORD', 'XyvY^n@p50]M'),
 				ssl: env.bool('DATABASE_SSL', false),
+				charset: "utf8mb4"
 			},
-			options: {}
+			options: {
+				charset: "utf8mb4"
+			}
 		},
 	},
 });

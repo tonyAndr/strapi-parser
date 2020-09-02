@@ -54,6 +54,14 @@
     "is_skipped": {
       "type": "boolean",
       "default": false
+    },
+    "imgsCount": {
+      "type": "integer",
+      "default": 0
+    },
+    "tries": {
+      "type": "integer",
+      "default": 0
     }
   }
 }

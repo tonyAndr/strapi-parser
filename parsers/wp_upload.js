@@ -34,6 +34,7 @@ const createPost = async (task, article, wp) => {
             // "title" and "content" are the only required properties
             title: article.title_h1,
             content: article.content_body,
+            slug: article.slug,
             // Post will be created as a draft by default if a specific "status"
             // is not specified
             status: 'publish',
@@ -95,7 +96,7 @@ const uploadMedia = async (task, article, wp, wp_id) => {
                 }
             }
         })
-        console.log('the directory transfer was', status ? 'successful' : 'unsuccessful')
+        console.log('-- IMAGES DIR UPLOAD: ', status ? 'successful' : 'unsuccessful')
         if (!status) {
             console.log('failed transfers', failed.join(', '))
             console.log('successful transfers', successful.join(', '))
@@ -103,7 +104,8 @@ const uploadMedia = async (task, article, wp, wp_id) => {
         }
 
         // upload featured image
-        let media = await wp.media().file('./tmp_images/' + task.domain + '/' + article.slug + '/' + article.slug + '_0.jpg').create({
+        //'./tmp_images/' + task.domain + '/' + article.slug + '/' + article.slug + '_0.jpg'
+        let media = await wp.media().file(successful[0]).create({
             title: article.keyword,
             post_id: wp_id
         }) 
@@ -116,6 +118,8 @@ const uploadMedia = async (task, article, wp, wp_id) => {
 
             if (!updatedPost.id) {
                 throw new Error('Can\'t update featured image in post');
+            } else {
+                console.log('-- FEATURED IMG UPDATED')
             }
         } else {
             throw new Error('Can\'t create featured image');
@@ -136,7 +140,7 @@ const uploadMedia = async (task, article, wp, wp_id) => {
 // еще черный список незабыть для доменов и прочей шелухи для доноров
 
 module.exports = {
-    uploadArticle: async (task, article) => {
+    uploadArticle: async (task, article, exists = false) => {
         var wp = new WPAPI({
             endpoint: 'https://' + task.domain + '/wp-json',
             // This assumes you are using basic auth, as described further below
@@ -145,26 +149,61 @@ module.exports = {
         });
 
         try {
+            let wp_id = 0;
 
-            let post = await createPost(task, article, wp);
-            
-            if (post.id) {
-                let artUpdated = await strapi.services.article.update({ id: article.id }, { wp_id: post.id });
+            if (exists) {
+                wp_id = article.wp_id;
+                console.log('-- POST ALREADY EXISTS')
             } else {
-                // console.log(post);
-                throw new Error("Rest API returned error")
+                // create post
+                let post = await createPost(task, article, wp);
+                
+                if (post.id) {
+                    wp_id = post.id;
+                    let artUpdated = await strapi.services.article.update({ id: article.id }, { wp_id: post.id, content_body: '', text_body: '' });
+                    console.log('-- POST CREATED')
+                } else {
+                    // console.log(post);
+                    throw new Error("Rest API returned error")
+                }
             }
 
-            let mediaUploaded = await uploadMedia(task, article, wp, post.id);
+            // upload imgs
+            if (article.imgsCount) {
+                let mediaUploaded = await uploadMedia(task, article, wp, wp_id);
 
-            if (mediaUploaded) {
+                if (mediaUploaded) {
+                    await strapi.services.article.update({ id: article.id }, { is_uploaded: true });
+                    rimraf.sync('./tmp_images/' + task.domain + '/' + article.slug);
+                }
+            } else {
                 await strapi.services.article.update({ id: article.id }, { is_uploaded: true });
-                rimraf.sync('./tmp_images/' + task.domain + '/' + article.slug);
             }
+
             return true;
         } catch (err) {
             console.log(err)
             return false;
         }
+    },
+    articleExists: async (task, slug) => {
+        var wp = new WPAPI({
+            endpoint: 'https://' + task.domain + '/wp-json',
+            // This assumes you are using basic auth, as described further below
+            username: task.wp_user,
+            password: task.wp_password
+        });
+        try {
+            let response = await wp.posts().slug(slug);
+            if (response.id) {
+                return response.id;
+            }
+            return false;
+        } catch(err) {
+            console.log(err);
+            throw new Error('Request [articleExists] failed');
+        }
+
+
     }
 }
