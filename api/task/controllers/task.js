@@ -5,7 +5,7 @@
  * to customize this controller
  */
 
-// const { parseMultipartData, sanitizeEntity } = require('strapi-utils');
+const { parseMultipartData, sanitizeEntity } = require('strapi-utils');
 
 module.exports = {
 
@@ -20,4 +20,10 @@ module.exports = {
     //     console.log('added task');
     //     return sanitizeEntity(entity, { model: strapi.models.task });
     // },
+
+    async getTasks(ctx) {
+        let entities;
+        entities = await strapi.services.task.find({},[]);
+        return entities.map(entity => sanitizeEntity(entity, { model: strapi.models.task }));
+    },
 };
