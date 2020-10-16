@@ -19,8 +19,8 @@
       "type": "integer"
     },
     "task": {
-      "model": "task",
-      "via": "articles"
+      "via": "articles",
+      "model": "task"
     },
     "is_done": {
       "type": "boolean",

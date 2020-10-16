@@ -17,8 +17,9 @@
       "default": false
     },
     "articles": {
-      "via": "task",
-      "collection": "article"
+      "autoPopulate": false,
+      "collection": "article",
+      "via": "task"
     },
     "domain": {
       "type": "string"
@@ -40,7 +41,8 @@
       "enum": [
         "standard",
         "download"
-      ]
+      ],
+      "default": "standard"
     },
     "lang": {
       "type": "enumeration",
@@ -65,6 +67,23 @@
     },
     "ssh_password": {
       "type": "string"
+    },
+    "blackList": {
+      "type": "string"
+    },
+    "translateTo": {
+      "type": "enumeration",
+      "enum": [
+        "no",
+        "en",
+        "es",
+        "dk"
+      ],
+      "default": "no"
+    },
+    "remove_links": {
+      "type": "boolean",
+      "default": true
     }
   }
 }
