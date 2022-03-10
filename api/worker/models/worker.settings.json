@@ -1,0 +1,21 @@
+{
+  "kind": "collectionType",
+  "collectionName": "workers",
+  "info": {
+    "name": "Worker"
+  },
+  "options": {
+    "increments": true,
+    "timestamps": true
+  },
+  "attributes": {
+    "pid": {
+      "type": "integer",
+      "unique": true
+    },
+    "taskId": {
+      "type": "integer",
+      "unique": true
+    }
+  }
+}

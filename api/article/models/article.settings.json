@@ -62,6 +62,9 @@
     "tries": {
       "type": "integer",
       "default": 0
+    },
+    "task_filter_id": {
+      "type": "integer"
     }
   }
 }

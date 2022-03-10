@@ -21,6 +21,7 @@ const createArticleLogic = async (data) => {
                     let article = {
                         keyword: kwPair[0].trim(),
                         task: parentId,
+                        task_filter_id: parentId,
                         category: kwPair[1].trim()
                     }
                     await strapi.services.article.create(article);

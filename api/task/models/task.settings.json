@@ -84,6 +84,24 @@
     "remove_links": {
       "type": "boolean",
       "default": true
+    },
+    "translateCategory": {
+      "type": "boolean",
+      "default": false
+    },
+    "publish_status": {
+      "type": "boolean",
+      "default": true
+    },
+    "keywordInitLang": {
+      "type": "enumeration",
+      "enum": [
+        "ru",
+        "en",
+        "es",
+        "dk"
+      ],
+      "default": "ru"
     }
   }
 }
